@@ -1,0 +1,71 @@
+package demo:lst;
+
+// See https://component-model.bytecodealliance.org/design/wit.html for more details about the WIT syntax
+
+interface api {
+  record connection {
+    id: u64
+  }
+
+  record insert-params {
+    after: string,
+    value: string
+  }
+
+  variant change {
+    added(string),
+    deleted(string),
+    inserted(insert-params)
+  }
+
+  add: func(c: connection, value: string);
+  delete: func(c: connection, value: string);
+  insert: func(c: connection, after: string, value: string);
+  get: func() -> list<string>;
+
+  poll: func(c: connection) -> list<change>;
+
+  connect: func(email: string) -> connection;
+  disconnect: func(c: connection);
+  connected-editors: func() -> list<string>;
+
+  archive: func();
+  is-archived: func() -> bool;
+}
+
+interface email-query {
+  deadline: func() -> option<u64>;
+  recipients: func() -> list<string>;
+}
+
+world lst  {
+  import demo:archive-stub/stub-archive;
+  import demo:email-stub/stub-email;
+
+  import golem:api/host@0.2.0;
+  import golem:rpc/types@0.1.0;
+
+  import wasi:blobstore/blobstore;
+  import wasi:blobstore/container;
+  import wasi:cli/environment@0.2.0;
+  import wasi:clocks/wall-clock@0.2.0;
+  import wasi:clocks/monotonic-clock@0.2.0;
+  import wasi:filesystem/preopens@0.2.0;
+  import wasi:filesystem/types@0.2.0;
+  import wasi:http/types@0.2.0;
+  import wasi:http/outgoing-handler@0.2.0;
+  import wasi:io/error@0.2.0;
+  import wasi:io/poll@0.2.0;
+  import wasi:io/streams@0.2.0;
+  import wasi:keyvalue/eventual-batch@0.1.0;
+  import wasi:keyvalue/eventual@0.1.0;
+  import wasi:logging/logging;
+  import wasi:random/random@0.2.0;
+  import wasi:random/insecure@0.2.0;
+  import wasi:random/insecure-seed@0.2.0;
+  import wasi:sockets/ip-name-lookup@0.2.0;
+  import wasi:sockets/instance-network@0.2.0;
+
+  export api;
+  export email-query;
+}

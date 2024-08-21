@@ -244,3 +244,175 @@ Try to query it:
 ```zsh
 golem-cloud-cli worker invoke-and-await --component $ARCHIVE --worker-name archive --function 'demo:archive/api.{get-all}'
 ```
+
+### Phase 4
+In the last step we implement the **email sending** functionality.
+
+First we create a new component, this time using rust:
+
+```zsh
+golem-cli new --lang rust --package-name demo:email email
+cd email
+cargo component build --release
+```
+
+Before we implement the `email` component, we are going to need to expose some functions from `lst` to be called from `email`.
+
+Add the `email-query` interface to `lst`'s WIT, then run
+
+```
+cd lst
+npm run componentize
+```
+
+Then implement the two new functions in `main.ts` and compile it.
+- Add the new `emailQuery` global
+- Add `emailDeadline` and `emailRecipients` to `State`
+- Add the `updateEmailProperties` helper function
+- Call it from `add`, `insert`, `delete`, `connect` and `disconnect`
+
+See if it compiles:
+
+```zsh
+npm run componentize
+```
+
+Now we can implement the `email` component.
+
+First we have to generate a **stub** for `lst`, so it can be called **from** `email`:
+
+```zsh
+cd ..
+golem-cloud-cli stubgen generate --source-wit-root lst/wit --dest-crate-root lst-stub
+```
+
+and build it:
+
+```zsh
+cd lst-stub
+cargo component build --release
+cd ..
+```
+
+Then add `lst` as a dependency of `email`:
+
+```zsh
+golem-cloud-cli stubgen add-stub-dependency --stub-wit-root lst-stub/wit --dest-wit-root email/wit --overwrite --update-cargo-toml
+```
+
+Try to build the `email` component:
+
+```zsh
+cd email
+cargo component build --release
+```
+
+It still compiles. See that `wit/deps` now contains `demo_lst-stub` and import it into `email/wit/email.wit` like we did with the archive stub before, then add it's API and regenerate the bindings:
+
+```zsh
+cargo component build --release
+```
+
+Now it fails so implement it (`prepared/phase-4/email/src/lib.rs`) and build
+
+```zsh
+cargo component build --release
+```
+
+Compose the result with the `lst` component's stub:
+
+```zsh
+cd ..
+golem-cloud-cli stubgen compose --source-wasm email/target/wasm32-wasi/release/email.wasm --stub-wasm lst-stub/target/wasm32-wasi/release/lst_stub.wasm --dest-wasm email/target/wasm32-wasi/release/email-composed.wasm
+```
+
+At this point we have an `email` component but noone calls it. We want to call it from the `lst` component whenever a new list is created.
+So we first need to generate a stub for `email`, so it can be called **from** `lst`:
+
+```zsh
+golem-cloud-cli stubgen generate --source-wit-root email/wit --dest-crate-root email-stub
+```
+
+and compile it:
+
+```zsh
+cd email-stub
+cargo component build --release
+cd ..
+```
+
+Then add `email` as a dependency of `lst`:
+
+```zsh
+golem-cloud-cli stubgen add-stub-dependency --stub-wit-root email-stub/wit --dest-wit-root lst/wit --overwrite
+```
+
+Import the `stub-email` interface in `lst/wit/main.wit` and regenerate the bindings:
+
+```zsh
+cd lst
+npm run componentize
+```
+
+Because we don't have a better place to spawn the email component, we create an `ensureInitialized` method on `State` and call it from each exported function.
+- Add the `initialized`, `name`, `emailComponentId` fields
+- Add the method
+- Call it from each exported function
+
+Compile it
+
+```zsh
+npm run componentize
+```
+
+Then compose it with both the archive and the email stubs:
+
+```zsh
+cd ..
+golem-cloud-cli stubgen compose --source-wasm lst/out/lst.wasm --stub-wasm archive-stub/target/wasm32-wasi/release/archive_stub.wasm --dest-wasm lst/out/lst-composed1.wasm
+golem-cloud-cli stubgen compose --source-wasm lst/out/lst-composed1.wasm --stub-wasm email-stub/target/wasm32-wasi/release/email_stub.wasm --dest-wasm lst/out/lst-composed.wasm
+```
+
+Before trying it out, first we upload the email component to the cloud:
+
+```zsh
+golem-cloud-cli component add --project $PRJ --component-name email email/target/wasm32-wasi/release/email-composed.wasm
+export EMAIL_ID=59163ee3-95a2-4e35-b660-9feaee1e2163
+```
+
+Then we update the `lst` component with the composed WASM:
+
+```zsh
+golem-cloud-cli component update --component $LST lst/out/lst-composed.wasm
+```
+
+Create a new list, now passing the email component id too:
+
+```zsh
+golem-cloud-cli worker start --component $LST --worker-name test4 --env "ARCHIVE_COMPONENT_ID=$ARCHIVE_ID" --env "EMAIL_COMPONENT_ID=$EMAIL_ID"
+```
+
+Edit the list:
+
+```zsh
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test4 --function 'demo:lst/api.{connect}' --arg '"vigoo@golem.cloud"'
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test4 --function 'demo:lst/api.{add}' --arg '{id: 1}' --arg '"item 1"'
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test4 --function 'demo:lst/api.{add}' --arg '{id: 1}' --arg '"item 3"'
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test4 --function 'demo:lst/api.{get}'
+```
+
+See if it spawned the email worker:
+
+```zsh
+golem-cloud-cli worker list --component urn:component:$EMAIL_ID
+```
+
+It shows it's `Suspended`, because it's sleeping until the deadline is reached.
+
+We can also check it's logs
+
+```zsh
+golem-cloud-cli worker connect --component urn:component:$EMAIL_ID --worker-name test4
+```
+
+End.

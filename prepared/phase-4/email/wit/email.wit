@@ -1,0 +1,15 @@
+package demo:email;
+
+// See https://component-model.bytecodealliance.org/design/wit.html for more details about the WIT syntax
+
+interface api {
+  use golem:rpc/types@0.1.0.{uri};
+
+  send-email: func(list-uri: uri);
+}
+
+world email {
+  import demo:lst-stub/stub-lst;
+
+  export api;
+}
