@@ -1,6 +1,4 @@
 node_modules/
 out/
 src/generated/
-.idea/
-target/
-archive/*.wasm
+.idea

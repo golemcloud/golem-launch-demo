@@ -112,3 +112,135 @@ golem-cloud-cli worker invoke-and-await --component $LST --worker-name test2 --f
 golem-cloud-cli worker invoke-and-await --component $LST --worker-name test2 --function 'demo:lst/api.{poll}' --arg '{id: 2}'
 
 ```
+
+### Phase 3
+In this step we impement the **archive functionality**.
+
+First let's create a new component, now using the Go language:
+
+```zsh
+golem-cloud-cli new --lang go --package-name demo:archive archive
+```
+
+compile the initial version:
+
+```zsh
+cd archive
+make build
+```
+
+Write the `archive` component's WIT definition (`prepared/phase-3/archive/wit/archive.wit`) and regenerate the bindings:
+
+```zsh
+make bindings
+```
+
+Then implement it (`prepared/phase-3/archive/src/main.go`) and compile again:
+
+```zsh
+make build
+```
+
+Generate a **stub** for the `archive` component:
+
+```zsh
+cd ..
+golem-cloud-cli stubgen generate --source-wit-root archive/wit --dest-crate-root archive-stub
+```
+
+Build it:
+
+```zsh
+cd archive-stub
+cargo component build --release
+cd ..
+```
+
+And add the stub as a dependency to `lst`:
+
+```zsh
+golem-cloud-cli stubgen add-stub-dependency --stub-wit-root archive-stub/wit --dest-wit-root lst/wit --overwrite
+```
+
+See how the `wit/deps` directory now contains `demo-archive-stub`. Modify the `lst` WIT definition to include the stub, and to export archive functionality (`prepared/phase-3/lst/wit/main.wit`).
+
+Regenerate bindings for `lst`:
+
+```zsh
+cd lst
+npm run componentize
+```
+
+Implement the archive feature (`prepared/phase-3/lst/src/main.ts`):
+- Add an `archive` flag to `State`
+- Modify `add`, `delete` and `insert` to check it
+- Implement `archive` and `isArchived`
+
+Compile the `lst` component:
+
+```zsh
+npm run componentize
+```
+
+Get back to the root and compose the `lst.wasm` with the `archive-stub.wasm`:
+
+```zsh
+cd ..
+golem-cloud-cli stubgen compose --source-wasm lst/out/lst.wasm --stub-wasm archive-stub/target/wasm32-wasi/release/archive_stub.wasm --dest-wasm lst/out/lst-composed.wasm
+```
+
+Before trying it out, first upload the new archive component and save it's URN and ID:
+
+```zsh
+golem-cloud-cli component add --project $PRJ --component-name archive archive/archive.wasm
+export ARCHIVE=urn:component:c95c8c49-db39-4221-8721-f1f2b7e02a9d
+export ARCHIVE_ID=c95c8c49-db39-4221-8721-f1f2b7e02a9d
+```
+
+Then update the list component with the new, composed version:
+
+```zsh
+golem-cloud-cli component update --component $LST lst/out/lst-composed.wasm
+```
+
+And try it out!
+First we explitly create a new list, passing the archive component's ID:
+
+```zsh
+golem-cloud-cli worker start --component $LST --worker-name test3 --env "ARCHIVE_COMPONENT_ID=$ARCHIVE_ID"
+```
+
+Then invoke it a few times, then query if it's archived:
+
+```zsh
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test3 --function 'demo:lst/api.{connect}' --arg '"vigoo@golem.cloud"'
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test3 --function 'demo:lst/api.{add}' --arg '{id: 1}' --arg '"item 1"'
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test3 --function 'demo:lst/api.{add}' --arg '{id: 1}' --arg '"item 3"'
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test3 --function 'demo:lst/api.{get}'
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test3 --function 'demo:lst/api.{is-archived}'
+```
+
+At this point the archive worker does not exist yet:
+
+```zsh
+golem-cloud-cli worker list --component $ARCHIVE
+```
+
+Let's archive our list:
+
+```zsh
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test3 --function 'demo:lst/api.{archive}'
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test3 --function 'demo:lst/api.{is-archived}'
+```
+
+And see the archive worker:
+
+```zsh
+golem-cloud-cli worker list --component $ARCHIVE
+```
+
+Try to query it:
+
+```zsh
+golem-cloud-cli worker invoke-and-await --component $ARCHIVE --worker-name archive --function 'demo:archive/api.{get-all}'
+```

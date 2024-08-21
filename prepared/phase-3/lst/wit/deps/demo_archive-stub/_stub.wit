@@ -1,0 +1,24 @@
+package demo:archive-stub;
+
+interface stub-archive {
+  use golem:rpc/types@0.1.0.{uri};
+  use wasi:io/poll@0.2.0.{pollable};
+  use demo:archive/api.{archived-list};
+
+  resource future-get-all-result {
+    subscribe: func() -> pollable;
+    get: func() -> option<list<archived-list>>;
+  }
+  resource api {
+    constructor(location: uri);
+    blocking-store: func(name: string, items: list<string>);
+    store: func(name: string, items: list<string>);
+    blocking-get-all: func() -> list<archived-list>;
+    get-all: func() -> future-get-all-result;
+  }
+
+}
+
+world wasm-rpc-stub-archive {
+  export stub-archive;
+}

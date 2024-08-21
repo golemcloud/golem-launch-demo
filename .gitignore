@@ -3,4 +3,4 @@ out/
 src/generated/
 .idea/
 target/
-archive/*.wasm
+**/archive/*.wasm

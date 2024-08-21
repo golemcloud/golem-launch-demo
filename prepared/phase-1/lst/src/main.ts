@@ -1,4 +1,4 @@
-import { Api } from './generated/lst.js';
+import {Api} from "./generated/lst.js";
 
 class State {
     items: string[] = [];
@@ -14,17 +14,17 @@ export const api: Api = {
         state.items.push(value);
     },
     delete(value: string): void {
-        state.items = state.items.filter(item => item !== value);
-    },
-    get(): string[] {
-        return state.items;
+        state.items = state.items.filter((item) => item !== value);
     },
     insert(after: string, value: string): void {
-        const index = state.items.findIndex(item => item === after);
+        const index = state.items.findIndex((item) => item === after);
         if (index == -1) {
             api.add(value);
         } else {
             state.items.splice(index + 1, 0, value);
         }
-    }
-}
+    },
+    get(): string[] {
+        return state.items;
+    },
+};
