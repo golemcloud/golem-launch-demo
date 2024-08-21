@@ -1,7 +1,11 @@
 # Golem 1.0 Launch Demo
 
 ## Description
-TODO
+In this demo we implement a **collaborative list editor application** using Golem. The application can handle an arbitrary number of simultaneously open **lists** - each list consists of a list of string items. These list items can be appended, inserted and deleted simultaneoulsy by multiple users; the current list state can be queried any time, as well as the active "editor" connections. Modification is only allowed for connected editors, and there is a `poll` function available for them which only returns the new changes since the last call.
+
+Lists can be archived, in which case they are no longer editable and their contents are saved in a separate **list archive**. Then the list can be deleted, it's last state remains forever in archive.
+
+An additional feature is that if a list is **not archived** and there are no changes for a certain period of time, all the connected editors are notified by sending an email to them. (Note: the demo does not actually implement the email sending, just prints a log line where it would do so.)
 
 ## Demo script
 
