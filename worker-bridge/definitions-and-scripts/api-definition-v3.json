@@ -1,0 +1,98 @@
+{
+  "id": "list-editor",
+  "draft": true,
+  "version": "0.0.3",
+  "routes": [
+    {
+      "method": "Get",
+      "path": "/v3/connect/{name}",
+      "binding": {
+        "type": "wit-worker",
+        "componentId": {
+          "componentId": "94b657f6-238f-4737-9fc3-2b25ff2f60da",
+          "version": 0
+        },
+        "workerName": "test4",
+        "response": "${let result = demo:lst/api.{connect}(request.path.name); {status: 200, body: result}}"
+      }
+    },
+    {
+      "method": "Post",
+      "path": "/v3/add",
+      "binding": {
+        "type": "wit-worker",
+        "componentId": {
+          "componentId": "94b657f6-238f-4737-9fc3-2b25ff2f60da",
+          "version": 0
+        },
+        "workerName": "test4",
+        "response": "${let input = { id: request.body.id }; demo:lst/api.{add}(input, request.body.value); {status: 200, body:\"success\"}}"
+      }
+    },
+    {
+      "method": "Post",
+      "path": "/v3/insert",
+      "binding": {
+        "type": "wit-worker",
+        "componentId": {
+          "componentId": "94b657f6-238f-4737-9fc3-2b25ff2f60da",
+          "version": 0
+        },
+        "workerName": "test4",
+        "response": "${let request_id = { id: request.body.id }; demo:lst/api.{insert}(request_id, request.body.after, request.body.value); {status: 200, body:\"success\"}}"
+      }
+    },
+    {
+      "method": "Get",
+      "path": "/v3/connected-editors",
+      "binding": {
+        "type": "wit-worker",
+        "componentId": {
+          "componentId": "94b657f6-238f-4737-9fc3-2b25ff2f60da",
+          "version": 0
+        },
+        "workerName": "test4",
+        "response": "${let result = demo:lst/api.{connected-editors}(); {status: 200, body: result }}"
+      }
+    },
+    {
+      "method": "Get",
+      "path": "/v3/poll/{id}",
+      "binding": {
+        "type": "wit-worker",
+        "componentId": {
+          "componentId": "94b657f6-238f-4737-9fc3-2b25ff2f60da",
+          "version": 0
+        },
+        "workerName": "test4",
+        "response": "${let request_id = { id: request.path.id }; let result = demo:lst/api.{poll}(request_id); {status: 200, body: result}}"
+      }
+    },
+    {
+      "method": "Get",
+      "path": "/v3/is-archived",
+      "binding": {
+        "type": "wit-worker",
+        "componentId": {
+          "componentId": "94b657f6-238f-4737-9fc3-2b25ff2f60da",
+          "version": 0
+        },
+        "workerName": "test4",
+        "response": "${let is_archived = demo:lst/api.{is-archived}(); let result = if is_archived then \"Archived\" else \"Unarchived\"; {status: 200, body: result}}"
+      }
+    },
+    {
+      "method": "Post",
+      "path": "/v3/archive",
+      "binding": {
+        "type": "wit-worker",
+        "componentId": {
+          "componentId": "94b657f6-238f-4737-9fc3-2b25ff2f60da",
+          "version": 0
+        },
+        "workerName": "test4",
+        "response": "${demo:lst/api.{archive}(); {status: 200, body: \"Archived\"}}"
+      }
+    }
+  ]
+}
