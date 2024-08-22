@@ -1,5 +1,4 @@
 import {Api, Change, Connection} from './generated/lst.js';
-import {after} from "node:test";
 import {getEnvironment} from "wasi:cli/environment@0.2.0";
 import {Api as ArchiveApi} from "demo:archive-stub/stub-archive";
 
@@ -35,7 +34,7 @@ export const api: Api = {
     add(c: Connection, value: string): void {
         if (!state.archived && state.isConnected(c)) {
             state.items.push(value);
-            state.addEvent({ tag: 'added', val: value });
+            state.addEvent({tag: 'added', val: value});
         } else {
             console.log("Invalid connection or list is archived");
         }
@@ -43,7 +42,7 @@ export const api: Api = {
     delete(c: Connection, value: string): void {
         if (!state.archived && state.isConnected(c)) {
             state.items = state.items.filter(item => item !== value);
-            state.addEvent({ tag: 'deleted', val: value });
+            state.addEvent({tag: 'deleted', val: value});
         } else {
             console.log("Invalid connection or list is archived");
         }
@@ -55,7 +54,7 @@ export const api: Api = {
                 api.add(c, value);
             } else {
                 state.items.splice(index + 1, 0, value);
-                state.addEvent({ tag: 'inserted', val: { after, value } });
+                state.addEvent({tag: 'inserted', val: {after, value}});
             }
         } else {
             console.log("Invalid connection or list is archived");
@@ -64,12 +63,12 @@ export const api: Api = {
     get(): string[] {
         return state.items;
     },
-    connect(email: string): Connection {
+    connect(email: string): [Connection, string[]] {
         const id = state.lastConnectionId + 1;
         state.lastConnectionId += 1;
-        state.connected.set(id, { email, events: [] });
+        state.connected.set(id, {email, events: []});
 
-        return { id: BigInt(id) };
+        return [{id: BigInt(id)}, state.items];
     },
     disconnect(c: Connection): void {
         if (state.isConnected(c)) {
@@ -100,7 +99,7 @@ export const api: Api = {
         const name = env.find(([key, _]) => key === "GOLEM_WORKER_NAME")?.[1] ?? "unknown";
         const component_id = env.find(([key, _]) => key === "ARCHIVE_COMPONENT_ID")?.[1] ?? "unknown";
 
-        const uri = { value: `urn:worker:${component_id}/archive` };
+        const uri = {value: `urn:worker:${component_id}/archive`};
         const archiveApi = new ArchiveApi(uri);
         archiveApi.store(name, state.items);
     },
