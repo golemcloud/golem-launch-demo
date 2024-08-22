@@ -11,7 +11,6 @@ curl -H "Accept: application/json" -X GET http://localhost:9006/v3/is-archived
 curl -H "Accept: application/json" -X POST http://localhost:9006/v3/archive
 
 
-# The same is deployed in cloud under subdomain
 # Cloud
 curl -H "Accept: application/json" -X GET https://listeditor.api.golem.cloud/v3/connect/vigoo
 curl -H "Accept: application/json" -X GET https://listeditor.api.golem.cloud/v3/connect/john
