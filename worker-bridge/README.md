@@ -22,7 +22,7 @@ golem-cli worker start --component urn:component:90986bb5-c4c6-4980-ae9a-3086f36
 ### Deploy APIs
 
 ```bash
-cd demo-golem-1.0/definitions-and-scripts
+cd worker-bridge/definitions-and-scripts
 ./set_up.sh
 ./try_out.sh
 ```
