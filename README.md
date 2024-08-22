@@ -1,7 +1,7 @@
 # Golem 1.0 Launch Demo
 
 ## Description
-In this demo we implement a **collaborative list editor application** using Golem. The application can handle an arbitrary number of simultaneously open **lists** - each list consists of a list of string items. These list items can be appended, inserted and deleted simultaneoulsy by multiple users; the current list state can be queried any time, as well as the active "editor" connections. Modification is only allowed for connected editors, and there is a `poll` function available for them which only returns the new changes since the last call.
+In this demo we implement a **collaborative list editor application** using Golem. The application can handle an arbitrary number of simultaneously open **lists** - each list consists of a list of string items. These list items can be appended, inserted and deleted simultaneously by multiple users; the current list state can be queried any time, as well as the active "editor" connections. Modification is only allowed for connected editors, and there is a `poll` function available for them which only returns the new changes since the last call.
 
 Lists can be archived, in which case they are no longer editable and their contents are saved in a separate **list archive**. Then the list can be deleted, it's last state remains forever in archive.
 
@@ -204,7 +204,7 @@ golem-cloud-cli component update --component $LST lst/out/lst-composed.wasm
 ```
 
 And try it out!
-First we explitly create a new list, passing the archive component's ID:
+First we explicitly create a new list, passing the archive component's ID:
 
 ```zsh
 golem-cloud-cli worker start --component $LST --worker-name test3 --env "ARCHIVE_COMPONENT_ID=$ARCHIVE_ID"
@@ -326,7 +326,7 @@ cd ..
 golem-cloud-cli stubgen compose --source-wasm email/target/wasm32-wasi/release/email.wasm --stub-wasm lst-stub/target/wasm32-wasi/release/lst_stub.wasm --dest-wasm email/target/wasm32-wasi/release/email-composed.wasm
 ```
 
-At this point we have an `email` component but noone calls it. We want to call it from the `lst` component whenever a new list is created.
+At this point we have an `email` component but nobody calls it. We want to call it from the `lst` component whenever a new list is created.
 So we first need to generate a stub for `email`, so it can be called **from** `lst`:
 
 ```zsh
