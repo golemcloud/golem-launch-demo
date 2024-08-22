@@ -13,7 +13,7 @@
           "version": 0
         },
         "workerName": "test4",
-        "response": "${let result = demo:lst/api.{connect}(request.path.name); {status: 200, body: result}}"
+        "response": "${let input = \"${request.path.name}@golem.cloud\"; let result = demo:lst/api.{connect}(input); {status: 200, body: result}}"
       }
     },
     {
