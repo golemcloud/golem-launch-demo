@@ -43,7 +43,6 @@ npm run componentize
 Let's set the **project ID** we are working with (Golem Cloud only) to an environment variable:
 
 ```zsh
-export PRJ=urn:project:5e12b227-a084-4d31-8fea-02da49c1f9c7 # Preparation test project
 export PRJ=urn:project:b17d7bbf-9704-4578-bc25-8b1ad22f3f3a # Live demo project
 ```
 

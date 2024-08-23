@@ -73,6 +73,7 @@ export const api: Api = {
             console.log(`Adding item ${value}`);
             state.items.push(value);
             state.addEvent({tag: 'added', val: value});
+            state.updateEmailProperties();
         } else {
             console.log('Invalid connection or already archived');
         }
@@ -84,6 +85,7 @@ export const api: Api = {
             console.log(`Deleting item ${value}`);
             state.items = state.items.filter(item => item !== value);
             state.addEvent({tag: 'deleted', val: value});
+            state.updateEmailProperties();
         } else {
             console.log('Invalid connection or already archived');
         }
@@ -99,6 +101,7 @@ export const api: Api = {
                 console.log(`Inserting item ${value} after ${after}`);
                 state.items.splice(index + 1, 0, value);
                 state.addEvent({tag: 'inserted', val: {after, value}});
+                state.updateEmailProperties();
             }
         } else {
             console.log('Invalid connection or already archived');
