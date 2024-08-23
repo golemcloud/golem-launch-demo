@@ -34,3 +34,7 @@ To Reset
 ./reset.sh
 
 ```
+
+## Cloud
+* Pre-deployed API is list-editor-v1: v1.0.0, under subdomain list-editor-v2
+* Clone this and deploy into another subdomain list-editor-v3
