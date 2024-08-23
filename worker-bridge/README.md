@@ -35,7 +35,7 @@ To Reset
 
 ```
 
-## Cloud
+## Cloud Demo of Worker Bridge
 * Pre-deployed API is list-editor-v1: v1.0.0, under subdomain list-editor-v2: https://console.golem.cloud/projects/2056ef7f-d4ba-4c85-8c8a-db4af1f14884/apis/list-editor-v1/1.0.0
 * There is a back up of this API too: v0.0.1, under subdmain listeditor: https://console.golem.cloud/projects/2056ef7f-d4ba-4c85-8c8a-db4af1f14884/apis/list-editor-v1/0.0.1
 * Clone v1.0.0 and deploy into another subdomain list-editor-v3. If things goes wrong, we could show previously deployed APIs working.
