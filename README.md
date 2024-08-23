@@ -114,7 +114,7 @@ golem-cloud-cli worker invoke-and-await --component $LST --worker-name test2 --f
 ```
 
 ### Phase 3
-In this step we impement the **archive functionality**.
+In this step we implement the **archive functionality**.
 
 First let's create a new component, now using the Go language:
 
@@ -145,15 +145,7 @@ Generate a **stub** for the `archive` component:
 
 ```zsh
 cd ..
-golem-cloud-cli stubgen generate --source-wit-root archive/wit --dest-crate-root archive-stub
-```
-
-Build it:
-
-```zsh
-cd archive-stub
-cargo component build --release
-cd ..
+golem-cloud-cli stubgen build --source-wit-root archive/wit --dest-wasm archive-stub/archive-stub.wasm --dest-wit-root archive-stub/wit 
 ```
 
 And add the stub as a dependency to `lst`:
@@ -186,7 +178,7 @@ Get back to the root and compose the `lst.wasm` with the `archive-stub.wasm`:
 
 ```zsh
 cd ..
-golem-cloud-cli stubgen compose --source-wasm lst/out/lst.wasm --stub-wasm archive-stub/target/wasm32-wasi/release/archive_stub.wasm --dest-wasm lst/out/lst-composed.wasm
+golem-cloud-cli stubgen compose --source-wasm lst/out/lst.wasm --stub-wasm archive-stub/archive-stub.wasm --dest-wasm lst/out/lst-composed.wasm
 ```
 
 Before trying it out, first upload the new archive component and save it's URN and ID:
@@ -283,15 +275,7 @@ First we have to generate a **stub** for `lst`, so it can be called **from** `em
 
 ```zsh
 cd ..
-golem-cloud-cli stubgen generate --source-wit-root lst/wit --dest-crate-root lst-stub
-```
-
-and build it:
-
-```zsh
-cd lst-stub
-cargo component build --release
-cd ..
+golem-cloud-cli stubgen build --source-wit-root lst/wit --dest-wasm lst-stub/lst-stub.wasm --dest-wit-root lst-stub/wit
 ```
 
 Then add `lst` as a dependency of `email`:
@@ -323,22 +307,14 @@ Compose the result with the `lst` component's stub:
 
 ```zsh
 cd ..
-golem-cloud-cli stubgen compose --source-wasm email/target/wasm32-wasi/release/email.wasm --stub-wasm lst-stub/target/wasm32-wasi/release/lst_stub.wasm --dest-wasm email/target/wasm32-wasi/release/email-composed.wasm
+golem-cloud-cli stubgen compose --source-wasm email/target/wasm32-wasi/release/email.wasm --stub-wasm lst-stub/lst-stub.wasm --dest-wasm email/target/wasm32-wasi/release/email-composed.wasm
 ```
 
 At this point we have an `email` component but nobody calls it. We want to call it from the `lst` component whenever a new list is created.
 So we first need to generate a stub for `email`, so it can be called **from** `lst`:
 
 ```zsh
-golem-cloud-cli stubgen generate --source-wit-root email/wit --dest-crate-root email-stub
-```
-
-and compile it:
-
-```zsh
-cd email-stub
-cargo component build --release
-cd ..
+golem-cloud-cli stubgen build --source-wit-root email/wit --dest-wasm email-stub/email-stub.wasm --dest-wit-root email-stub/wit
 ```
 
 Then add `email` as a dependency of `lst`:
@@ -369,8 +345,8 @@ Then compose it with both the archive and the email stubs:
 
 ```zsh
 cd ..
-golem-cloud-cli stubgen compose --source-wasm lst/out/lst.wasm --stub-wasm archive-stub/target/wasm32-wasi/release/archive_stub.wasm --dest-wasm lst/out/lst-composed1.wasm
-golem-cloud-cli stubgen compose --source-wasm lst/out/lst-composed1.wasm --stub-wasm email-stub/target/wasm32-wasi/release/email_stub.wasm --dest-wasm lst/out/lst-composed.wasm
+golem-cloud-cli stubgen compose --source-wasm lst/out/lst.wasm --stub-wasm archive-stub/archive-stub.wasm --dest-wasm lst/out/lst-composed1.wasm
+golem-cloud-cli stubgen compose --source-wasm lst/out/lst-composed1.wasm --stub-wasm email-stub/email-stub.wasm --dest-wasm lst/out/lst-composed.wasm
 ```
 
 Before trying it out, first we upload the email component to the cloud:
