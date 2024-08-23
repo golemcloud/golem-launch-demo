@@ -4,8 +4,8 @@ import {Api as ArchiveApi} from "demo:archive-stub/stub-archive";
 import {Api as EmailApi} from "demo:email-stub/stub-email";
 
 interface EditorState {
-    email: string,
-    events: Change[]
+    email: string;
+    events: Change[];
 }
 
 class State {
@@ -19,18 +19,16 @@ class State {
     emailRecipients: string[] = [];
 
     initialized: boolean = false;
-    name: string = "unknown";
-    emailComponentId: string = "unknown";
 
     constructor() {
     }
 
-    isConnected(c: Connection): boolean {
-        return state.connected.has(Number(c.id));
+    isConnected(connection: Connection): boolean {
+        return this.connected.has(Number(connection.id));
     }
 
     addEvent(event: Change): void {
-        for (const editor of state.connected.values()) {
+        for (const editor of this.connected.values()) {
             editor.events.push(event);
         }
     }
@@ -48,16 +46,16 @@ class State {
         if (!this.initialized) {
             const env: [string, string][] = getEnvironment();
 
-            this.name = env.find(([key, _]) => key === "GOLEM_WORKER_NAME")?.[1] ?? "unknown";
-            this.emailComponentId = env.find(([key, _]) => key === "EMAIL_COMPONENT_ID")?.[1] ?? "unknown";
+            const name = env.find(([key, _]) => key === "GOLEM_WORKER_NAME")?.[1] ?? "unknown";
+            const emailComponentId = env.find(([key, _]) => key === "EMAIL_COMPONENT_ID")?.[1] ?? "unknown";
 
             this.updateEmailProperties();
 
-            const uri = {value: `urn:worker:${this.emailComponentId}/${this.name}`};
+            const uri = {value: `urn:worker:${emailComponentId}/${name}`};
             const emailApi = new EmailApi(uri);
 
             const selfComponentId = env.find(([key, _]) => key === "GOLEM_COMPONENT_ID")?.[1] ?? "unknown";
-            const selfUri = `urn:worker:${selfComponentId}/${this.name}`;
+            const selfUri = `urn:worker:${selfComponentId}/${name}`;
             emailApi.sendEmail({value: selfUri});
 
             this.initialized = true;
@@ -65,45 +63,45 @@ class State {
     }
 }
 
-let state: State = new State();
+let state = new State();
 
 export const api: Api = {
-    add(c: Connection, value: string): void {
+    add(connection: Connection, value: string): void {
         state.ensureInitialized();
 
-        if (!state.archived && state.isConnected(c)) {
-            state.updateEmailProperties();
+        if (!state.archived && state.isConnected(connection)) {
+            console.log(`Adding item ${value}`);
             state.items.push(value);
             state.addEvent({tag: 'added', val: value});
         } else {
-            console.log("Invalid connection or list is archived");
+            console.log('Invalid connection or already archived');
         }
     },
-    delete(c: Connection, value: string): void {
+    delete(connection: Connection, value: string): void {
         state.ensureInitialized();
 
-        if (!state.archived && state.isConnected(c)) {
-            state.updateEmailProperties();
+        if (!state.archived && state.isConnected(connection)) {
+            console.log(`Deleting item ${value}`);
             state.items = state.items.filter(item => item !== value);
             state.addEvent({tag: 'deleted', val: value});
         } else {
-            console.log("Invalid connection or list is archived");
+            console.log('Invalid connection or already archived');
         }
     },
-    insert(c: Connection, after: string, value: string): void {
+    insert(connection: Connection, after: string, value: string): void {
         state.ensureInitialized();
 
-        if (!state.archived && state.isConnected(c)) {
-            const index = state.items.findIndex(item => item === after);
-            if (index == -1) {
-                api.add(c, value);
+        if (!state.archived && state.isConnected(connection)) {
+            const index = state.items.indexOf(after);
+            if (index === -1) {
+                this.add(connection, value);
             } else {
-                state.updateEmailProperties();
+                console.log(`Inserting item ${value} after ${after}`);
                 state.items.splice(index + 1, 0, value);
                 state.addEvent({tag: 'inserted', val: {after, value}});
             }
         } else {
-            console.log("Invalid connection or list is archived");
+            console.log('Invalid connection or already archived');
         }
     },
     get(): string[] {
@@ -115,41 +113,43 @@ export const api: Api = {
         state.ensureInitialized();
 
         const id = state.lastConnectionId + 1;
-        state.lastConnectionId += 1;
-        state.connected.set(id, {email, events: []});
-        state.updateEmailProperties();
+        state.lastConnectionId = id;
+        state.connected.set(id, { email, events: [] });
 
-        return [{id: BigInt(id)}, state.items];
-    },
-    disconnect(c: Connection): void {
-        state.ensureInitialized();
-
-        if (state.isConnected(c)) {
-            state.connected.delete(Number(c.id));
-            state.updateEmailProperties();
-        } else {
-            console.log("Invalid connection");
-        }
+        console.log(`User ${email} connected with id ${id}`);
+        return [{ id: BigInt(id) }, state.items];
     },
     connectedEditors(): string[] {
         state.ensureInitialized();
 
         return Array.from(state.connected.values()).map(editor => editor.email);
     },
+    disconnect(c: Connection): void {
+        state.ensureInitialized();
+
+        if (state.connected.has(Number(c.id))) {
+            state.connected.delete(Number(c.id));
+            console.log(`Connection ${c.id} closed`);
+        } else {
+            console.log('Invalid connection');
+        }
+    },
     poll(c: Connection): Change[] {
         state.ensureInitialized();
 
         const editor = state.connected.get(Number(c.id));
         if (editor) {
+            console.log(`Returning events for connection ${c.id}`);
+
             const events = editor.events;
             editor.events = [];
             return events;
         } else {
-            console.log("Invalid connection");
+            console.log('Invalid connection');
             return [];
         }
     },
-    archive() {
+    archive(): void {
         state.ensureInitialized();
 
         state.archived = true;
@@ -170,18 +170,25 @@ export const api: Api = {
     }
 }
 
+
 export const emailQuery: EmailQuery = {
     deadline(): bigint | undefined {
         state.ensureInitialized();
 
         if (state.archived) {
+            console.log(`Returning no deadline because list is already archived`);
+
             return undefined;
         } else {
+            console.log(`Returning deadline ${state.emailDeadline}`);
+
             return BigInt(state.emailDeadline);
         }
     },
     recipients(): string[] {
         state.ensureInitialized();
+
+        console.log(`Returning recipients ${state.emailRecipients}`);
 
         return state.emailRecipients;
     }

@@ -21,6 +21,8 @@ type ArchiveImpl struct {
 func (e *ArchiveImpl) Store(name string, items []string) {
 	std.Init(std.Packages{Os: true, NetHttp: true})
 
+	println("Archiving list", name)
+
 	archived = append(archived, archive.ExportsDemoArchiveApiArchivedList{
 		Name:  name,
 		Items: items,
