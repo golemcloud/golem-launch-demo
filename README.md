@@ -144,7 +144,7 @@ Generate a **stub** for the `archive` component:
 
 ```zsh
 cd ..
-golem-cloud-cli stubgen build --source-wit-root archive/wit --dest-wasm archive-stub/archive-stub.wasm --dest-wit-root archive-stub/wit 
+golem-cloud-cli stubgen build --source-wit-root archive/wit --dest-wasm archive-stub/archive-stub.wasm --dest-wit-root archive-stub/wit
 ```
 
 And add the stub as a dependency to `lst`:
@@ -391,3 +391,72 @@ golem-cloud-cli worker connect --component urn:component:$EMAIL_ID --worker-name
 ```
 
 End.
+
+## Demo Script for 1.1
+
+Create a new project
+```zsh
+golem-cloud-cli project add --project-name 'Golem 1.1 Demo'
+```
+
+Save it's urn:
+
+```zsh
+export PRJ=urn:project:629fa7d7-84e5-4215-ba5c-7fd383ae8b40
+```
+
+Upload the components created on the 1.0 launch:
+
+```zsh
+golem-cloud-cli component add --project $PRJ --component-name email precompiled/email-composed.wasm
+export EMAIL_ID=064e104e-be4f-4fb8-935b-c4c5a775eac1
+golem-cloud-cli component add --project $PRJ --component-name lst precompiled/lst-composed.wasm
+export LST=urn:component:5826760e-216b-4341-a59a-cf3c177743d1
+golem-cloud-cli component add --project $PRJ --component-name archive precompiled/archive.wasm
+export ARCHIVE_ID=ec9715ba-feb1-4444-84c5-9ba9f9182dbd
+```
+
+Create a new list:
+
+```zsh
+golem-cloud-cli worker start --component $LST --worker-name test --env "ARCHIVE_COMPONENT_ID=$ARCHIVE_ID" --env "EMAIL_COMPONENT_ID=$EMAIL_ID"
+```
+
+Do some invocations:
+
+```zsh
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test --function 'demo:lst/api.{connect}' --arg '"vigoo@golem.cloud"'
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test --function 'demo:lst/api.{add}' --arg '{id: 1}' --arg '"item 1"'
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test --function 'demo:lst/api.{add}' --arg '{id: 1}' --arg '"item 3"'
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test --function 'demo:lst/api.{get}'
+golem-cloud-cli worker invoke-and-await --component $LST --worker-name test --function 'demo:lst/api.{archive}'
+```
+
+Show how we can check the worker's oplog:
+
+```zsh
+golem-cloud-cli worker oplog --component $LST --worker-name test
+```
+
+Try only listing entries related to calling exported functions:
+
+```zsh
+golem-cloud-cli worker oplog --component $LST --worker-name test --query 'exported-function'
+```
+
+Explain that this is a lucid query and can filter on many things.
+
+Look for RPC calls:
+
+```zsh
+golem-cloud-cli worker oplog --component $LST --worker-name test --query 'rpc'
+```
+
+Check the other workers:
+
+```zsh
+golem-cloud-cli worker oplog --component-name email --project $PRJ --worker-name test
+golem-cloud-cli worker oplog --component-name archive --project $PRJ --worker-name archive
+```
+
+Show how the idempotency key can be used in the query to match specific internal calls.
