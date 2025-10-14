@@ -1,0 +1,240 @@
+import {
+    BaseAgent,
+    agent,
+    Result
+} from '@golemcloud/golem-ts-sdk';
+
+type ClientId = number;
+
+type Client = {
+    id: ClientId,
+    email: string
+}
+
+type InsertParams = {
+    after: string,
+    value: string,
+}
+
+export type Change = {
+    tag: "added",
+    val: string,
+} | {
+    tag: "deleted",
+    val: string,
+} | {
+    tag: "inserted",
+    val: InsertParams
+}
+
+type EditorState = {
+    client: Client,
+    changes: Change[]
+}
+
+type ListError = {
+    tag: "invalid-client-id",
+    clientId: ClientId,
+} | {
+    tag: "archived"
+};
+
+@agent()
+class ListAgent extends BaseAgent {
+    private readonly name: string;
+    private readonly items: string[] = [];
+
+    private readonly clients = new Map<number, EditorState>();
+
+    private lastClientId: number = 0;
+    private archived: boolean = false;
+    private lastNotificationDeadline: number = 0;
+    private lastNotificationRecipients: string[] = [];
+
+    constructor(name: string) {
+        super()
+        this.name = name;
+
+        this.updateLastNotificationFields();
+
+        const notificationAgent = NotificationAgent.get(name);
+        notificationAgent.run.trigger();
+    }
+
+    connect(email: string): ClientId {
+        this.lastClientId++;
+        const id = this.lastClientId;
+        this.clients.set(id, {
+            client: {
+                id: id,
+                email: email
+            },
+            changes: []
+        });
+        return id;
+    }
+
+    disconnect(id: ClientId): boolean {
+        return this.clients.delete(id);
+    }
+
+    add(id: ClientId, item: string): Result<number, ListError> {
+        return this.ensureCanEdit(id, () => {
+            this.addEvent({tag: "added", val: item});
+            this.items.push(item);
+            this.updateLastNotificationFields();
+            return Result.ok(this.items.length);
+        });
+    }
+
+    insert(id: ClientId, after: string, item: string): Result<number, ListError> {
+        return this.ensureCanEdit(id, () => {
+            const index = this.items.indexOf(after);
+            if (index === -1) {
+                return this.add(id, item);
+            } else {
+                this.addEvent({tag: "inserted", val: {after, value: item}})
+                this.items.splice(index + 1, 0, item);
+                this.updateLastNotificationFields();
+                return Result.ok(this.items.length);
+            }
+        });
+    }
+
+    delete(id: ClientId, item: string): Result<number, ListError> {
+        return this.ensureCanEdit(id, () => {
+            this.addEvent({tag: "deleted", val: item});
+            this.items.filter(i => i !== item);
+            this.updateLastNotificationFields();
+            return Result.ok(this.items.length);
+        });
+    }
+
+    get(): string[] {
+        return this.items;
+    }
+
+    poll(id: ClientId): Result<Change[], ListError> {
+        return this.ensureCanEdit(id, () => {
+            const state = this.clients.get(id)!;
+            const changes = state.changes;
+            state.changes = [];
+
+            return Result.ok(changes);
+        });
+    }
+
+    async archive(): Promise<boolean> {
+        if (this.archived) {
+            return false;
+        }
+
+        const archive = ArchiveAgent.get();
+        await archive.add({
+            name: this.name,
+            items: this.items
+        })
+
+        this.archived = true;
+        return true;
+    }
+
+    getCurrentDeadline(): { deadline: number, recipients: string[] } | undefined {
+        if (this.archived) {
+            return undefined;
+        }
+
+        return {deadline: this.lastNotificationDeadline, recipients: this.lastNotificationRecipients};
+    }
+
+    private ensureCanEdit<R>(id: ClientId, inner: () => Result<R, ListError>): Result<R, ListError> {
+        if (this.archived) {
+            return Result.err({
+                tag: "archived"
+            });
+        }
+        if (!this.clients.has(id)) {
+            return Result.err({
+                tag: "invalid-client-id",
+                clientId: id
+            });
+        } else {
+            return inner();
+        }
+    }
+
+    private addEvent(event: Change) {
+        console.debug("Adding event", event);
+
+        for (const [_, state] of this.clients) {
+            state.changes.push(event);
+        }
+    }
+
+    private updateLastNotificationFields() {
+        const now = Date.now();
+        this.lastNotificationDeadline = now + 1000 * 60; // 1 minute from now
+        this.lastNotificationRecipients = Array.from(this.clients.values()).map(editor => editor.client.email);
+    }
+}
+
+type ArchivedList = {
+    name: string,
+    items: string[]
+}
+
+@agent()
+class ArchiveAgent extends BaseAgent {
+    private readonly archive: ArchivedList[] = [];
+
+    add(list: ArchivedList) {
+        this.archive.push(list);
+    }
+
+    getAll(): ArchivedList[] {
+        return this.archive;
+    }
+}
+
+@agent()
+class NotificationAgent extends BaseAgent {
+    private readonly name: string;
+
+    constructor(name: string) {
+        super()
+        this.name = name;
+    }
+
+    async run() {
+        let finished = false;
+        let list = ListAgent.get(this.name);
+
+        while (finished) {
+            console.debug(`Asking list ${this.name} for deadline`);
+            const result = await list.getCurrentDeadline();
+            if (result === undefined) {
+                console.debug(`List ${this.name} is archived, closing notification agent`);
+                finished = true;
+            } else {
+                const now = Date.now();
+                if (now > result.deadline) {
+                    console.debug(`List ${this.name} deadline reached, sending notifications`);
+                    await this.sendNotifications(result.recipients);
+                } else {
+                    await new Promise(resolve => setTimeout(resolve, result.deadline - now));
+                }
+            }
+        }
+    }
+
+    private async sendNotifications(recipients: string[]) {
+        console.info(`Sending e-mail to ${recipients.join(", ")}`);
+        for (const recipient of recipients) {
+            await this.sendNotification(recipient);
+        }
+    }
+
+    private async sendNotification(recipient: string) {
+        // TODO
+    }
+}
