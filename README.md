@@ -246,6 +246,8 @@ Because Golem agents are single-threaded and do have background async work outsi
 When we create a new list, we will always start a list-notification agent as well for each. This will execute a long-running method that sleeps for a given time, checks the list's last change time, and if necessary, sends an email to all connected editors,
 otherwise sleeps again.
 
+Note that we have to add an env variable with the API key.
+
 Start from scratch and create a new list:
 
 ```shell
@@ -280,4 +282,4 @@ extends a single method that will call an LLM to suggest more items based on the
 
 This process is exposed from the list agent itself using `trigger` so it runs in the background.
 
-
+Note we have to enable an LLM provider and set up an API key.
