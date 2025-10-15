@@ -4,6 +4,8 @@ import {
     Result
 } from '@golemcloud/golem-ts-sdk';
 
+import {ArchiveAgent} from "./archive";
+
 type ClientId = number;
 
 type Client = {
@@ -54,7 +56,7 @@ class ListAgent extends BaseAgent {
         this.name = name;
     }
 
-    connect(email: string): ClientId {
+    connect(email: string): { id: ClientId, items: string[] } {
         this.lastClientId++;
         const id = this.lastClientId;
         this.clients.set(id, {
@@ -64,7 +66,7 @@ class ListAgent extends BaseAgent {
             },
             changes: []
         });
-        return id;
+        return {id, items: this.items};
     }
 
     disconnect(id: ClientId): boolean {
@@ -151,23 +153,5 @@ class ListAgent extends BaseAgent {
         for (const [_, state] of this.clients) {
             state.changes.push(event);
         }
-    }
-}
-
-type ArchivedList = {
-    name: string,
-    items: string[]
-}
-
-@agent()
-class ArchiveAgent extends BaseAgent {
-    private readonly archive: ArchivedList[] = [];
-
-    add(list: ArchivedList) {
-        this.archive.push(list);
-    }
-
-    getAll(): ArchivedList[] {
-        return this.archive;
     }
 }

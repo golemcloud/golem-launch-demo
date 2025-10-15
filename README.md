@@ -77,11 +77,11 @@ Shows the following sheet:
 ║ Component size:    4.72 MiB
 ║ Created at:        2025-10-14 12:16:50.331931 UTC
 ║ Exports:
-║   list-agent(name: string) agent constructor
-║   list-agent.add(item: string) ->
-║   list-agent.insert(after: string, item: string) ->
-║   list-agent.delete(item: string) ->
-║   list-agent.list() -> return-value: list<string>
+║   list-agent(string) agent constructor
+║   list-agent.add(string) -> f64
+║   list-agent.insert(string, string) -> f64
+║   list-agent.delete(string) -> f64
+║   list-agent.get() -> list<string>
 ╚═
 ```
 
@@ -96,7 +96,7 @@ Try it out:
 ()
 >>> l1.insert("item1", "item1b")
 ()
->>> l1.list()
+>>> l1.get()
 [
   "item1",
   "item1b",
@@ -127,13 +127,13 @@ golem repl
 
 ()
 >>>
->>> l1.add(vigoo, "item 1")
+>>> l1.add(vigoo.id, "item 1")
 [2025-10-14T13:20:07.284Z] [STDOUT  ] Adding event { tag: 'added', val: 'item 1' }
 ok(1)
->>> l1.add(vigoo, "item 3")
+>>> l1.add(vigoo.id, "item 3")
 [2025-10-14T13:20:11.176Z] [STDOUT  ] Adding event { tag: 'added', val: 'item 3' }
 ok(2)
->>> l1.insert(john, "item 1", "item 2")
+>>> l1.insert(john.id, "item 1", "item 2")
 [2025-10-14T13:20:13.324Z] [STDOUT  ] Adding event { tag: 'inserted', val: { after: 'item 1', value: 'item 2' } }
 ok(3)
 >>> l1.get()
@@ -142,7 +142,7 @@ ok(3)
   "item 2",
   "item 3"
 ]
->>> l1.poll(vigoo)
+>>> l1.poll(vigoo.id)
 ok([
   added("item 1"),
   added("item 3"),
@@ -151,7 +151,7 @@ ok([
     value: "item 2"
   })
 ])
->>> l1.poll(john)
+>>> l1.poll(john.id)
 ok([
   added("item 1"),
   added("item 3"),
@@ -160,19 +160,14 @@ ok([
     value: "item 2"
   })
 ])
->>> l1.disconnect(john)
+>>> l1.disconnect(john.id)
 true
->>> l1.poll(vigoo)
+>>> l1.poll(vigoo.id)
 ok([])
->>> l1.add("item 4")
-[compilation error]
-[position] 1
-[expression] l1.add("item 4")
-[cause] invalid argument size for function `add`. expected 2 arguments, found 1
->>> l1.add(vigoo, "item 4")
+>>> l1.add(vigoo.id, "item 4")
 [2025-10-14T13:20:42.236Z] [STDOUT  ] Adding event { tag: 'added', val: 'item 4' }
 ok(4)
->>> l1.poll(vigoo)
+>>> l1.poll(vigoo.id)
 ok([
   added("item 4")
 ])
@@ -202,7 +197,8 @@ Then in REPL:
 [
   "item 1",
   "item 2",
-  "item 3"
+  "item 3",
+  "item 4"
 ]
 >>> l1.archive()
 >>> let archive = archive-agent()
@@ -221,7 +217,7 @@ Then in REPL:
 >>>
 >>> let vigoo = l1.connect("vigoo@golem.cloud")
 ()
->>> l1.add(vigoo, "test 4")
+>>> l1.add(vigoo.id, "test 4")
 err(archived)
 >>>
 ```
@@ -247,6 +243,41 @@ golem agent list
 The final missing piece is sending an email notification after a certain period of time.
 Because Golem agents are single-threaded and do have background async work outside their invoked methods, we need to start a background agent to do this.
 
-When we create a new list, we will always start a list-notification agent as well for each. This will execute a long-running method that sleeps for a given time, checks the list's last change time, and if necessary sends an email to all connected editors,
+When we create a new list, we will always start a list-notification agent as well for each. This will execute a long-running method that sleeps for a given time, checks the list's last change time, and if necessary, sends an email to all connected editors,
 otherwise sleeps again.
+
+Start from scratch and create a new list:
+
+```shell
+golem app deploy --reset
+golem repl
+```
+
+```
+let l1 = list-agent("test1")
+let vigoo = l1.connect("vigoo@golem.cloud")
+l1.add(vigoo.id, "item 1")
+```
+
+then check the list of agents:
+
+```shell
+golem agent list
+```
+
+and stream the notification agent's logs:
+
+```shell
+golem agent stream 'notification-agent("test1")'
+```
+
+It's going to send the email and print the response status code (202)
+
+### Phase 5
+As a bonus step, we can add some dumb AI support to our list editor.
+We define one more agent that is a "side-car" for each list. So it gets the list name as a constructor parameter, and 
+extends a single method that will call an LLM to suggest more items based on the existing ones, and add them to the original.
+
+This process is exposed from the list agent itself using `trigger` so it runs in the background.
+
 

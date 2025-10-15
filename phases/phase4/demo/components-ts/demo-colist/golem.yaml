@@ -40,6 +40,8 @@ components:
     #    COMPOSED_VAR_3: "{{ ENV_VAR_3 }}-{{ ENV_VAR_4}}"
     #
     env:
+      SENDGRID_API_KEY: '{{ SENDGRID_API_KEY }}'
+
     # LLM providers
     # ------------------------------------------------------------------------------------------------------------
     ## Common

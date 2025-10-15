@@ -9,3 +9,4 @@
 includes:
 - common-*/golem.yaml
 - components-*/*/golem.yaml
+- apikey.yaml

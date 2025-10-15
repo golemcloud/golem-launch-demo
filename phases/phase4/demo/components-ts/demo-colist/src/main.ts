@@ -4,6 +4,9 @@ import {
     Result
 } from '@golemcloud/golem-ts-sdk';
 
+import { ArchiveAgent } from "./archive";
+import { NotificationAgent } from "./notification";
+
 type ClientId = number;
 
 type Client = {
@@ -40,7 +43,7 @@ type ListError = {
 };
 
 @agent()
-class ListAgent extends BaseAgent {
+export class ListAgent extends BaseAgent {
     private readonly name: string;
     private readonly items: string[] = [];
 
@@ -61,7 +64,7 @@ class ListAgent extends BaseAgent {
         notificationAgent.run.trigger();
     }
 
-    connect(email: string): ClientId {
+    connect(email: string): { id: ClientId, items: string[] } {
         this.lastClientId++;
         const id = this.lastClientId;
         this.clients.set(id, {
@@ -71,7 +74,7 @@ class ListAgent extends BaseAgent {
             },
             changes: []
         });
-        return id;
+        return {id, items: this.items};
     }
 
     disconnect(id: ClientId): boolean {
@@ -175,66 +178,5 @@ class ListAgent extends BaseAgent {
         const now = Date.now();
         this.lastNotificationDeadline = now + 1000 * 60; // 1 minute from now
         this.lastNotificationRecipients = Array.from(this.clients.values()).map(editor => editor.client.email);
-    }
-}
-
-type ArchivedList = {
-    name: string,
-    items: string[]
-}
-
-@agent()
-class ArchiveAgent extends BaseAgent {
-    private readonly archive: ArchivedList[] = [];
-
-    add(list: ArchivedList) {
-        this.archive.push(list);
-    }
-
-    getAll(): ArchivedList[] {
-        return this.archive;
-    }
-}
-
-@agent()
-class NotificationAgent extends BaseAgent {
-    private readonly name: string;
-
-    constructor(name: string) {
-        super()
-        this.name = name;
-    }
-
-    async run() {
-        let finished = false;
-        let list = ListAgent.get(this.name);
-
-        while (finished) {
-            console.debug(`Asking list ${this.name} for deadline`);
-            const result = await list.getCurrentDeadline();
-            if (result === undefined) {
-                console.debug(`List ${this.name} is archived, closing notification agent`);
-                finished = true;
-            } else {
-                const now = Date.now();
-                if (now > result.deadline) {
-                    console.debug(`List ${this.name} deadline reached, sending notifications`);
-                    await this.sendNotifications(result.recipients);
-                } else {
-                    await new Promise(resolve => setTimeout(resolve, result.deadline - now));
-                }
-            }
-        }
-    }
-
-    private async sendNotifications(recipients: string[]) {
-        console.info(`Sending e-mail to ${recipients.join(", ")}`);
-        for (const recipient of recipients) {
-            await this.sendNotification(recipient);
-        }
-    }
-
-    private async sendNotification(recipient: string) {
-        // TODO
     }
 }

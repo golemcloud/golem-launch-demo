@@ -13,21 +13,24 @@ class ListAgent extends BaseAgent {
         this.name = name;
     }
 
-    add(item: string) {
+    add(item: string): number {
         this.items.push(item);
+        return this.items.length;
     }
 
-    insert(after: string, item: string) {
+    insert(after: string, item: string): number {
         const index = this.items.indexOf(after);
         if (index === -1) {
-            this.add(item);
+            return this.add(item);
         } else {
             this.items.splice(index + 1, 0, item);
+            return this.items.length;
         }
     }
 
-    delete(item: string) {
+    delete(item: string): number {
         this.items.filter(i => i !== item);
+        return this.items.length;
     }
 
     get() {

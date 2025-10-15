@@ -51,7 +51,7 @@ class ListAgent extends BaseAgent {
         this.name = name;
     }
 
-    connect(email: string): ClientId {
+    connect(email: string): { id: ClientId, items: string[] } {
         this.lastClientId++;
         const id = this.lastClientId;
         this.clients.set(id, {
@@ -61,7 +61,7 @@ class ListAgent extends BaseAgent {
             },
             changes: []
         });
-        return id;
+        return { id, items: this.items };
     }
 
     disconnect(id: ClientId): boolean {
